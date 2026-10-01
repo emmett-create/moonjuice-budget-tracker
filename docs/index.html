@@ -42,24 +42,12 @@
       <div id="inbox-list"></div>
     </div>
 
-    <!-- Category cards -->
-    <div class="cat-grid">
-      <div class="cat-card a8"   id="cc-a8_paid"        data-cat="a8_paid">
-        <div class="cc-label">A8 Paid Influencers</div>
-        <div class="cc-num"   id="cat-a8_paid-actual">$0</div>
-        <div class="cc-bar-wrap"><div class="cc-bar-fill" id="cat-a8_paid-bar" style="width:0%"></div></div>
-        <div class="cc-hint">Click to filter</div>
-      </div>
+    <!-- Category card (single bucket — Emmett's call, 2026-10-01) -->
+    <div class="cat-grid cat-grid-1">
       <div class="cat-card mj"   id="cc-moonjuice_paid"  data-cat="moonjuice_paid">
         <div class="cc-label">Moon Juice Paid Influencers</div>
         <div class="cc-num"   id="cat-moonjuice_paid-actual">$0</div>
         <div class="cc-bar-wrap"><div class="cc-bar-fill" id="cat-moonjuice_paid-bar" style="width:0%"></div></div>
-        <div class="cc-hint">Click to filter</div>
-      </div>
-      <div class="cat-card ship" id="cc-shipping"        data-cat="shipping">
-        <div class="cc-label">Shipping &amp; PR Mailers</div>
-        <div class="cc-num"   id="cat-shipping-actual">$0</div>
-        <div class="cc-bar-wrap"><div class="cc-bar-fill" id="cat-shipping-bar" style="width:0%"></div></div>
         <div class="cc-hint">Click to filter</div>
       </div>
     </div>
@@ -123,9 +111,7 @@
         <button class="cal-btn" id="cal-next">Next →</button>
       </div>
       <div class="cal-key">
-        <span class="cal-dot a8_paid">A8 Paid Influencers</span>
         <span class="cal-dot moonjuice_paid">Moon Juice Paid Influencers</span>
-        <span class="cal-dot shipping">Shipping &amp; PR Mailers</span>
       </div>
       <div class="cal-dow-row">
         <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div>
@@ -203,15 +189,6 @@
         <div class="fld">
           <label>Date</label>
           <input type="date" id="f-date" required>
-        </div>
-        <div class="fld">
-          <label>Category</label>
-          <select id="f-category" required>
-            <option value="">— select —</option>
-            <option value="a8_paid">A8 Paid Influencers</option>
-            <option value="moonjuice_paid">Moon Juice Paid Influencers</option>
-            <option value="shipping">Shipping &amp; PR Mailers</option>
-          </select>
         </div>
         <div class="fld" id="field-handle">
           <label>Creator Handle</label>

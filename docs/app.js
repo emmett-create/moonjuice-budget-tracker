@@ -2,12 +2,15 @@
 // Lumanu integration included from the start (see budget-tracker-lumanu-bridge).
 
 const TOTAL_BUDGET = 75_000;
+// Single bucket (Emmett's call, 2026-10-01) — "A8 Paid Influencers" and
+// "Shipping & PR Mailers" removed; the one stray entry that had landed on
+// a8_paid (an invoice-intake default, not a real split) was recategorized
+// to moonjuice_paid directly in Supabase. The bridge's config.py now has a
+// matching default_category so new invoice-email entries land here too.
 const CATS = {
-  a8_paid:        'A8 Paid Influencers',
   moonjuice_paid: 'Moon Juice Paid Influencers',
-  shipping:       'Shipping & PR Mailers',
 };
-const PAID_CATS = ['a8_paid', 'moonjuice_paid'];   // only these go through Lumanu
+const PAID_CATS = ['moonjuice_paid'];   // only these go through Lumanu
 
 const LUMANU_STATUSES = {
   not_sent:       'Not Sent',
@@ -489,20 +492,20 @@ function bindAll() {
     const btn    = document.getElementById('btn-submit');
     const isEdit = !!editId;
     btn.disabled = true; btn.textContent = 'Saving…';
-    const cat  = document.getElementById('f-category').value;
-    const paid = PAID_CATS.includes(cat);
+    // Single category now (Emmett's call, 2026-10-01) — no dropdown to read,
+    // every entry is moonjuice_paid, so handle/Lumanu fields always apply.
     const payload = {
       date:           document.getElementById('f-date').value,
       entry_type:     'actual',
-      category:       cat,
-      creator_handle: paid ? (document.getElementById('f-handle').value.trim().replace(/^@/,'') || null) : null,
+      category:       'moonjuice_paid',
+      creator_handle: document.getElementById('f-handle').value.trim().replace(/^@/,'') || null,
       description:    document.getElementById('f-description').value.trim() || null,
       amount:         parseFloat(document.getElementById('f-amount').value),
       notes:          document.getElementById('f-notes').value.trim() || null,
-      billing_id:     paid ? (document.getElementById('f-billing-id').value.trim() || null) : null,
-      due_date:       paid ? (document.getElementById('f-due-date').value || null) : null,
-      po_number:      paid ? (document.getElementById('f-po').value.trim() || null) : null,
-      lumanu_status:  paid ? document.getElementById('f-lumanu-status').value : 'not_sent',
+      billing_id:     document.getElementById('f-billing-id').value.trim() || null,
+      due_date:       document.getElementById('f-due-date').value || null,
+      po_number:      document.getElementById('f-po').value.trim() || null,
+      lumanu_status:  document.getElementById('f-lumanu-status').value,
       status:         'confirmed',   // saving always confirms (incl. completing an inbox item)
     };
     const ok = isEdit ? await update(editId, payload) : await insert(payload);
@@ -510,13 +513,6 @@ function bindAll() {
     if (!ok) { alert('Error saving — please try again.'); return; }
     closeModal();
     await load();
-  });
-
-  // Show/hide handle + Lumanu fields based on category
-  document.getElementById('f-category').addEventListener('change', e => {
-    const show = PAID_CATS.includes(e.target.value);
-    document.getElementById('field-handle').classList.toggle('hidden', !show);
-    document.getElementById('field-lumanu').classList.toggle('hidden', !show);
   });
 
   // Send to Lumanu (direct API)
@@ -731,7 +727,6 @@ function openEditModal(entry) {
   document.getElementById('btn-submit').textContent  = 'Save Changes';
   document.getElementById('entry-form').reset();
   document.getElementById('f-date').value        = entry.date;
-  document.getElementById('f-category').value    = entry.category || '';
   document.getElementById('f-handle').value      = entry.creator_handle || '';
   document.getElementById('f-description').value = entry.description || '';
   document.getElementById('f-amount').value      = entry.amount;
@@ -740,9 +735,6 @@ function openEditModal(entry) {
   document.getElementById('f-due-date').value    = entry.due_date || '';
   document.getElementById('f-po').value          = entry.po_number || '';
   document.getElementById('f-lumanu-status').value = entry.lumanu_status || 'not_sent';
-  const showHandle = PAID_CATS.includes(entry.category);
-  document.getElementById('field-handle').classList.toggle('hidden', !showHandle);
-  document.getElementById('field-lumanu').classList.toggle('hidden', !showHandle);
   document.getElementById('modal-overlay').classList.remove('hidden');
 }
 function closeModal() {
