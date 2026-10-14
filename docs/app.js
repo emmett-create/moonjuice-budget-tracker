@@ -36,6 +36,7 @@ let deleteId    = null;
 let editId      = null;
 let pending     = [];   // DocuSign / invoice inbox items awaiting review (status = 'pending')
 let selected    = new Set();   // ids checked off for Lumanu send
+let dupContext  = null;   // {payload, isEdit, editId, dupRow} while the possible-duplicate modal is open
 
 // ── Boot ─────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -508,11 +509,54 @@ function bindAll() {
       lumanu_status:  document.getElementById('f-lumanu-status').value,
       status:         'confirmed',   // saving always confirms (incl. completing an inbox item)
     };
-    const ok = isEdit ? await update(editId, payload) : await insert(payload);
+
+    // Duplicate check (2026-10-14, Emmett — invoices coming through that
+    // duplicate an already-manually-added entry for the same creator).
+    // Only checked when introducing what amounts to a NEW financial
+    // commitment: completing a pending inbox item (Assign + add), or a
+    // brand-new manual "+ Add Entry" — NOT a routine edit of an entry
+    // that's already confirmed, which isn't a new-duplicate risk.
+    const wasPending = isEdit && pending.some(p => String(p.id) === String(editId));
+    if ((!isEdit || wasPending) && payload.creator_handle) {
+      const dupRow = rows.find(r =>
+        String(r.id) !== String(editId) &&
+        (r.creator_handle || '').toLowerCase() === payload.creator_handle.toLowerCase());
+      if (dupRow) {
+        btn.disabled = false; btn.textContent = isEdit ? 'Save Changes' : 'Add Entry';
+        openDupModal(dupRow, payload, isEdit, editId);
+        return;
+      }
+    }
+
+    const ok = await performSave(payload, isEdit, editId);
     btn.disabled = false; btn.textContent = isEdit ? 'Save Changes' : 'Add Entry';
     if (!ok) { alert('Error saving — please try again.'); return; }
     closeModal();
     await load();
+  });
+
+  // Possible-duplicate modal buttons
+  document.getElementById('dup-keep-both').addEventListener('click', async () => {
+    if (!dupContext) return;
+    const { payload, isEdit, editId: eid } = dupContext;
+    const ok = await performSave(payload, isEdit, eid);
+    closeDupModal();
+    if (!ok) { alert('Error saving — please try again.'); return; }
+    closeModal();
+    await load();
+  });
+  document.getElementById('dup-replace').addEventListener('click', async () => {
+    if (!dupContext) return;
+    const { payload, isEdit, editId: eid, dupRow } = dupContext;
+    await remove(dupRow.id);
+    const ok = await performSave(payload, isEdit, eid);
+    closeDupModal();
+    if (!ok) { alert('Error saving — please try again.'); return; }
+    closeModal();
+    await load();
+  });
+  document.getElementById('dup-overlay').addEventListener('click', e => {
+    if (e.target.id === 'dup-overlay') closeDupModal();
   });
 
   // Send to Lumanu (direct API)
@@ -760,6 +804,36 @@ function openDelete(id) {
 function closeDelete() {
   deleteId = null;
   document.getElementById('delete-overlay').classList.add('hidden');
+}
+
+// ── Save + possible-duplicate check ─────────────────────────────────────────
+// Pulled out of the submit handler so both the normal (no-duplicate) path
+// and the duplicate modal's two buttons can call the same save logic.
+async function performSave(payload, isEdit, id) {
+  return isEdit ? await update(id, payload) : await insert(payload);
+}
+
+function dupCard(label, entry) {
+  return `
+    <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:12px">
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#8b949e;margin-bottom:8px">${label}</div>
+      <div style="font-size:18px;font-weight:700;margin-bottom:6px">${fmt(+entry.amount)}</div>
+      <div style="color:#8b949e;font-size:12px;margin-bottom:4px">${fmtDate(entry.date)}</div>
+      <div style="font-size:13px">${esc(entry.description || '')}</div>
+      ${entry.notes ? `<div style="color:#8b949e;font-size:12px;margin-top:6px">${esc(entry.notes)}</div>` : ''}
+    </div>`;
+}
+
+function openDupModal(dupRow, payload, isEdit, editId) {
+  dupContext = { dupRow, payload, isEdit, editId };
+  document.getElementById('dup-handle').textContent = `@${payload.creator_handle}`;
+  document.getElementById('dup-compare').innerHTML =
+    dupCard('Already in tracker', dupRow) + dupCard('This new one', payload);
+  document.getElementById('dup-overlay').classList.remove('hidden');
+}
+function closeDupModal() {
+  dupContext = null;
+  document.getElementById('dup-overlay').classList.add('hidden');
 }
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
