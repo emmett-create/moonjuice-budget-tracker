@@ -512,12 +512,10 @@ function bindAll() {
 
     // Duplicate check (2026-10-14, Emmett — invoices coming through that
     // duplicate an already-manually-added entry for the same creator).
-    // Only checked when introducing what amounts to a NEW financial
-    // commitment: completing a pending inbox item (Assign + add), or a
-    // brand-new manual "+ Add Entry" — NOT a routine edit of an entry
-    // that's already confirmed, which isn't a new-duplicate risk.
+    // Scoped to ONLY completing a pending inbox item (Assign + add) — Emmett's
+    // explicit call: manual "+ Add Entry" should never trigger this.
     const wasPending = isEdit && pending.some(p => String(p.id) === String(editId));
-    if ((!isEdit || wasPending) && payload.creator_handle) {
+    if (wasPending && payload.creator_handle) {
       const dupRow = rows.find(r =>
         String(r.id) !== String(editId) &&
         (r.creator_handle || '').toLowerCase() === payload.creator_handle.toLowerCase());
