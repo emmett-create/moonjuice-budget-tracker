@@ -690,7 +690,7 @@ function renderSent() {
 
   const tbody = document.getElementById('sent-tbody');
   if (!data.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="empty-cell">No invoices sent to Lumanu yet.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty-cell">No invoices sent to Lumanu yet.</td></tr>`;
     return;
   }
 
@@ -698,6 +698,13 @@ function renderSent() {
   tbody.innerHTML = sorted.map(e => {
     const h = e.creator_handle ? `<span class="handle-text">@${e.creator_handle.replace(/^@/, '')}</span>` : '';
     const d = e.description    ? `<span>${esc(e.description)}</span>` : '';
+    // Same view-invoice pattern as the main List table — only shows a
+    // button when a PDF is actually attached (e.g. retroactively, or a
+    // Zap that stored the file); no "Attach" option here since these rows
+    // are already sent, unlike the pre-send List view.
+    const invoiceBtn = e.invoice_path
+      ? `<button class="btn-view-invoice" data-id="${e.id}" title="View attached invoice">📄 View</button>`
+      : '<span style="color:#444">—</span>';
     return `<tr>
       <td style="white-space:nowrap;color:#8b949e">${fmtDate(e.date)}</td>
       <td><span class="badge-cat ${e.category}">${CATS[e.category] || e.category}</span></td>
@@ -705,8 +712,13 @@ function renderSent() {
       <td class="amount-actual" style="white-space:nowrap">${fmt(+e.amount)}</td>
       <td>${esc(e.billing_id || '')}</td>
       <td><span class="badge-lumanu ${e.lumanu_status || 'not_sent'}">${LUMANU_STATUSES[e.lumanu_status] || 'Not Sent'}</span></td>
+      <td style="white-space:nowrap">${invoiceBtn}</td>
     </tr>`;
   }).join('');
+
+  tbody.querySelectorAll('.btn-view-invoice').forEach(b =>
+    b.addEventListener('click', () => viewInvoice(b.dataset.id))
+  );
 }
 
 // ── Modal helpers ─────────────────────────────────────────────────────────────
